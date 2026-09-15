@@ -290,8 +290,117 @@
   }
   .bar-inner{max-width:480px;margin:0 auto}
 
+  /* ---------- 호롱불 ---------- */
+  .lanterns{
+    position:absolute;
+    top:0;left:0;right:0;
+    height:170px;
+    pointer-events:none;
+  }
+  .lantern{
+    position:absolute;
+    top:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    transform-origin:50% 0;
+    animation:sway 6.5s ease-in-out infinite alternate;
+  }
+  .lantern-a{left:9%;animation-duration:6.5s}
+  .lantern-b{right:10%;animation-duration:8s;animation-delay:-2.4s}
+
+  .cord{
+    width:1px;
+    background:linear-gradient(180deg,rgba(246,212,134,.15),rgba(246,212,134,.5));
+  }
+  .lantern-a .cord{height:40px}
+  .lantern-b .cord{height:56px}
+
+  .lamp{
+    position:relative;
+    width:34px;height:44px;
+    border-radius:50% 50% 48% 48% / 46% 46% 54% 54%;
+    background:
+      radial-gradient(circle at 38% 34%, #FFF3D0 0%, #FFD98A 34%, #F0A93F 72%, #C9762A 100%);
+    box-shadow:0 0 22px 4px rgba(255,186,84,.45);
+  }
+  /* 위·아래 나무 테 */
+  .lamp::before,.lamp::after{
+    content:"";position:absolute;left:50%;transform:translateX(-50%);
+    width:17px;height:5px;border-radius:2px;
+    background:#7E3320;
+  }
+  .lamp::before{top:-3px}
+  .lamp::after{bottom:-3px;width:13px}
+
+  .halo{
+    position:absolute;
+    inset:-34px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(255,190,90,.42) 0%, rgba(255,175,70,.16) 42%, transparent 72%);
+    animation:flicker 3.4s ease-in-out infinite;
+  }
+  .lantern-b .halo{animation-duration:4.3s;animation-delay:-1.6s}
+
+  .tassel{
+    width:2px;height:15px;margin-top:4px;
+    background:linear-gradient(180deg,#E0A93B,rgba(224,169,59,0));
+  }
+
+  @keyframes sway{
+    from{transform:rotate(-3.5deg)}
+    to{transform:rotate(3.5deg)}
+  }
+  /* 심지가 흔들리듯 불규칙하게 */
+  @keyframes flicker{
+    0%{opacity:.72;transform:scale(.97)}
+    14%{opacity:1;transform:scale(1.04)}
+    29%{opacity:.8;transform:scale(.99)}
+    43%{opacity:.96;transform:scale(1.02)}
+    61%{opacity:.7;transform:scale(.96)}
+    78%{opacity:1;transform:scale(1.05)}
+    100%{opacity:.72;transform:scale(.97)}
+  }
+
+  /* ---------- 낙엽 ---------- */
+  .leaves{
+    position:fixed;
+    top:0;bottom:0;
+    left:50%;
+    width:100%;
+    max-width:480px;
+    transform:translateX(-50%);
+    z-index:15;
+    pointer-events:none;
+    overflow:hidden;
+  }
+  .leaf{
+    position:absolute;
+    top:0;
+    will-change:transform;
+    animation:fall linear infinite;
+  }
+  .leaf svg{
+    display:block;
+    width:100%;height:100%;
+    animation:flutter ease-in-out infinite alternate;
+  }
+  /* 다른 화면을 보는 동안에는 멈춰서 배터리를 아낍니다 */
+  .leaves.is-paused .leaf,
+  .leaves.is-paused .leaf svg{animation-play-state:paused}
+  @keyframes fall{
+    from{transform:translate3d(0,-14vh,0)}
+    to{transform:translate3d(var(--drift),110vh,0)}
+  }
+  @keyframes flutter{
+    from{transform:translateX(-13px) rotate(-25deg)}
+    to{transform:translateX(13px) rotate(30deg)}
+  }
+
   @media (prefers-reduced-motion:reduce){
     .moon{animation:none}
+    .leaves{display:none}
+    .lantern,.halo{animation:none}
     *{transition:none!important}
   }
 </style>
@@ -301,6 +410,19 @@
 <div class="page">
 
   <header class="sky">
+    <div class="lanterns" aria-hidden="true">
+      <div class="lantern lantern-a">
+        <span class="cord"></span>
+        <span class="lamp"><i class="halo"></i></span>
+        <span class="tassel"></span>
+      </div>
+      <div class="lantern lantern-b">
+        <span class="cord"></span>
+        <span class="lamp"><i class="halo"></i></span>
+        <span class="tassel"></span>
+      </div>
+    </div>
+
     <p class="kicker">멘토루크 · 온라인 실시간</p>
     <div class="moon" aria-hidden="true"></div>
     <h1>추석연휴 특강<br>참가 신청</h1>
@@ -432,6 +554,8 @@
   <footer>멘토루크 · 추석연휴 특강</footer>
 </div>
 
+<div class="leaves" id="leaves" aria-hidden="true"></div>
+
 <div class="bar">
   <div class="bar-inner">
     <a class="btn" href="https://naver.me/xzHdndbz">특강 신청하기</a>
@@ -470,6 +594,61 @@
 
   tick();
   var timer = setInterval(tick, 1000);
+})();
+
+/* 낙엽 */
+(function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var layer = document.getElementById('leaves');
+  if (reduce || !layer) return;
+
+  // 단풍잎 / 은행잎
+  var SHAPES = {
+    maple: 'M12 1 14.6 6.6 19.2 4.4 17.6 9.6 23 9 19 13 22 16.2 16 16.6 17 22.4 12 18.6 7 22.4 8 16.6 2 16.2 5 13 1 9 6.4 9.6 4.8 4.4 9.4 6.6Z',
+    ginkgo:'M12 23 12 14.6C5.2 14.6 1.2 10.8 3.2 6.8 5.2 2.8 8.8 1 12 1 15.2 1 18.8 2.8 20.8 6.8 22.8 10.8 18.8 14.6 12 14.6Z'
+  };
+  var TONE = {
+    maple: ['#C0442B','#D4622E','#A8362A','#CE5533'],
+    ginkgo:['#E0A93B','#EBBF54','#D19A2E']
+  };
+
+  function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+  function between(a,b){ return a + Math.random()*(b-a); }
+
+  // 화면이 좁을수록 잎을 줄여 구형 기기에서도 부드럽게
+  var count = window.innerWidth < 420 ? 10 : 14;
+  var frag = document.createDocumentFragment();
+
+  for (var i = 0; i < count; i++) {
+    var kind = Math.random() < 0.55 ? 'maple' : 'ginkgo';
+    var size = between(13, 26);
+    var fallSec = between(10, 19);
+
+    var leaf = document.createElement('span');
+    leaf.className = 'leaf';
+    leaf.style.left = between(-2, 96) + '%';
+    leaf.style.width = size + 'px';
+    leaf.style.height = size + 'px';
+    leaf.style.opacity = between(0.45, 0.8).toFixed(2);
+    leaf.style.setProperty('--drift', between(-60, 60).toFixed(0) + 'px');
+    leaf.style.animationDuration = fallSec.toFixed(1) + 's';
+    // 음수 지연 — 페이지를 열자마자 이미 내리고 있는 것처럼 보이게
+    leaf.style.animationDelay = '-' + between(0, fallSec).toFixed(1) + 's';
+
+    leaf.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="' + pick(TONE[kind]) + '">' +
+        '<path d="' + SHAPES[kind] + '"/>' +
+      '</svg>';
+    leaf.firstChild.style.animationDuration = between(2.4, 4.6).toFixed(1) + 's';
+    leaf.firstChild.style.animationDelay = '-' + between(0, 3).toFixed(1) + 's';
+
+    frag.appendChild(leaf);
+  }
+  layer.appendChild(frag);
+
+  document.addEventListener('visibilitychange', function(){
+    layer.classList.toggle('is-paused', document.hidden);
+  });
 })();
 </script>
 
